@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en-US">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Canvas</title>
+
+    <link href="style.css" rel="stylesheet">
+</head>
+
+<body style="margin: 0; overflow: hidden;">
+    <canvas class="myCanvas">
+        <p>浏览器不支持canvas</p>
+    </canvas>
+</body>
+
+<script>
+    var canvas = document.querySelector(".myCanvas");
+    var width = (canvas.width = window.innerWidth);
+    var height = (canvas.height = window.innerHeight);
+    var ctx = canvas.getContext("2d");
+
+    let data = [
+        {
+            "name": "node-1",
+            "pods": [
+                {
+                    "name": "chief-1",
+                    "role": "chief"
+                },
+                {
+                    "name": "worker-1",
+                    "role": "worker"
+                },
+                {
+                    "name": "worker-2",
+                    "role": "worker"
+                },
+                {
+                    "name": "ps-0",
+                    "role": "ps",
+                    "descs": [
+                        {
+                            "level": "info",
+                            "text": "latency: 10ms"
+                        },
+                        {
+                            "level": "warn",
+                            "text": "memory: 10g"
+                        },
+                        {
+                            "level": "error",
+                            "text": "memory: 100g"
+                        },
+                    ]
+                },
+            ]
+        },
+        {
+            "name": "node-2",
+            "pods": [
+                {
+                    "name": "ps-1",
+                    "role": "ps"
+                },
+                {
+                    "name": "ps-2",
+                    "role": "ps"
+                },
+            ]
+        },
+        {
+            "name": "node-3",
+            "pods": [
+                {
+                    "name": "driver-1",
+                    "role": "driver"
+                },
+
+            ]
+        }
+    ]
+
+    function filter_role(data, roles) {
+        filtered_nodes = []
+        data.forEach(node => {
+            filtered_pods = []
+            node.pods.forEach(pod => {
+                if (roles.includes(pod.role)) {
+                    filtered_pods.push(pod)
+                }
+            })
+            filtered_nodes.push({
+                name: node.name,
+                pods: filtered_pods,
+            })
+        })
+        return filtered_nodes
+    }
+
+    // data = filter_role(data, ["chief", "worker", "driver"])
+
+    let max_node_pods = 0
+    data.forEach(node => {
+        if (node.pods.length > max_node_pods) {
+            max_node_pods = node.pods.length
+        }
+    });
+
+    const roleColorMap = {
+        'ps': '#FFD7C4',
+        'chief': '#7695FF',
+        'worker': '#9DBDFF',
+        'driver': '#FFC600',
+        'node': '#DFF2EB',
+    }
+
+    const descColorMap = {
+        "info": "green",
+        "warn": "yellow",
+        "error": "red",
+    }
+    descColorMap['warning'] = descColorMap['warn']
+
+    const n_node = data.length
+    const label_font = "sans-serif"
+    const label_size = 15
+    const node_x_padding_ratio = 0.1
+    const node_x_padding = width * node_x_padding_ratio
+    const node_y_padding_ratio = 0.05
+    const node_y_padding = height * node_y_padding_ratio
+    const node_width = (width - (n_node + 1) * node_x_padding) / n_node
+    const node_height = height - node_y_padding * 2
+    const node_pod_x_padding_ratio = 0.2
+    let node_pod_x_padding = node_width * node_pod_x_padding_ratio
+    let node_pod_y_padding = 10
+
+    // 根据宽度和高度，计算出最佳的pod大小
+    let pod_size = 0
+    const pod_size_1 = node_width - node_pod_x_padding * 2
+    const pod_size_2 = (node_height - node_pod_y_padding * (max_node_pods + 1)) / max_node_pods
+    if (pod_size_1 >= pod_size_2) {
+        pod_size = pod_size_2
+        // 重新计算node_pod_x_padding
+        node_pod_x_padding = (node_width - pod_size) / 2
+    }
+    else if (pod_size_1 < pod_size_2) {
+        pod_size = pod_size_1
+        // 重新计算node_pod_y_padding
+        node_pod_y_padding = (node_height - (pod_size * max_node_pods)) / (max_node_pods + 1)
+    }
+
+
+
+
+
+    // 有可能会相互覆盖/碰撞，但我们暂不考虑
+    data.forEach((node, i) => {
+        node_x = node_x_padding * (i + 1) + node_width * i
+        node_y = node_y_padding
+        // fill nodes
+        ctx.fillStyle = roleColorMap.node;
+        ctx.fillRect(node_x, node_y,
+            node_width, node_height);
+
+        ctx.fillStyle = "black";
+        ctx.font = `${label_size}px ${label_font}`;
+        ctx.fillText(node.name, node_x + 5, node_y + label_size);
+
+        // fill pods
+        node.pods.forEach((pod, j) => {
+            const pod_x = node_x + node_pod_x_padding
+            const pod_y = node_y + node_pod_y_padding * (j + 1) + pod_size * j
+            ctx.fillStyle = roleColorMap[pod.role];
+            ctx.fillRect(pod_x, pod_y,
+                pod_size, pod_size);
+
+            ctx.fillStyle = "black";
+            ctx.font = `${label_size}px ${label_font}`;
+            ctx.fillText(pod.name, pod_x + 5, pod_y + label_size);
+
+
+            pod.descs?.forEach((desc, i) => {
+                ctx.fillStyle = descColorMap[desc.level];
+                ctx.font = `${label_size}px ${label_font}`;
+                ctx.fillText(desc.text, pod_x + 5, pod_y + label_size * (2 + i) + 5);
+            })
+
+        })
+    })
+
+</script>
+
+
+</html>
